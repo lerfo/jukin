@@ -25,8 +25,10 @@ router.post('/topic_collect/de_collect', middleware.auth, topicCollectController
 router.get('/topic_collect/:loginname', topicCollectController.list);
 
 // 用户
-router.get('/user/:loginname', userController.show);
-
+router.get('/user/:loginname',  middleware.tokenAuth, userController.show);
+router.post('/login', middleware.login);
+router.post('/signup', middleware.signup);
+router.get('/signout', middleware.signout);
 
 
 // accessToken 测试

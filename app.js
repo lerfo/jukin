@@ -40,8 +40,8 @@ var requestLog = require('./middlewares/request_log');
 var renderMiddleware = require('./middlewares/render');
 var logger = require('./common/logger');
 var helmet = require('helmet');
-var bytes = require('bytes')
-
+var bytes = require('bytes');
+var jwt = require('jwt-simple');
 
 // 静态文件目录
 var staticDir = path.join(__dirname, 'public');
@@ -63,6 +63,7 @@ config.hostname = urlinfo.hostname || config.host;
 var app = express();
 
 // configuration in all env
+app.set('jwtTokenSecret',config.jwt_secret)
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'html');
 app.engine('html', require('ejs-mate'));

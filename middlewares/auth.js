@@ -4,7 +4,9 @@ var Message    = require('../proxy').Message;
 var config     = require('../config');
 var eventproxy = require('eventproxy');
 var UserProxy  = require('../proxy').User;
-
+var moment = require('moment');
+var jwt    = require('jwt-simple');
+//var  async = require('async');
 /**
  * 需要管理员权限
  */
@@ -38,7 +40,7 @@ exports.blockUser = function () {
     }
 
     if (req.session.user && req.session.user.is_block && req.method !== 'GET') {
-      return res.status(403).send('您已被管理员屏蔽了。有疑问请联系 @alsotang。');
+      return res.status(403).send('您已被管理员屏蔽了。有疑问请联系管理员。');
     }
     next();
   };
@@ -53,6 +55,7 @@ function gen_session(user, res) {
     signed: true,
     httpOnly: true
   };
+  console.log('gen_session: auth_token='+auth_token);
   res.cookie(config.auth_cookie_name, auth_token, opts); //cookie 有效期30天
 }
 
@@ -66,7 +69,7 @@ exports.authUser = function (req, res, next) {
   // Ensure current_user always has defined.
   res.locals.current_user = null;
 
-  if (config.debug && req.cookies['mock_user']) {
+  if (config.debug && req.cookies['mock_user']) { 
     var mockUser = JSON.parse(req.cookies['mock_user']);
     req.session.user = new UserModel(mockUser);
     if (mockUser.is_admin) {
@@ -104,3 +107,49 @@ exports.authUser = function (req, res, next) {
     UserProxy.getUserById(user_id, ep.done('get_user'));
   }
 };
+
+
+
+function gen_jwtToken(user, req) {
+  var expires = moment().add( 30 ,'days').valueOf();
+  console.log('expires:'+expires);
+  console.log('jwtTokenSecret',req.app.get('jwtTokenSecret'));
+  var token = jwt.encode({
+	  iss: user._id,
+	  exp: expires
+	}, req.app.get('jwtTokenSecret'));
+
+
+  return token;
+}
+
+exports.gen_jwtToken = gen_jwtToken;
+
+
+function verify_jwtToken(token,req) {
+	try {
+		var decoded = jwt.decode(token, req.app.get('jwtTokenSecret'));
+		console.log('decoded.iss:'+decoded.iss )
+		return decoded.iss;	  
+	} catch (err) {
+		console.log('verify_jwtToken() err:'+err);
+		return null
+	}
+}
+
+exports.verify_jwtToken = verify_jwtToken;
+
+function del_jwtToken(token,req) {
+    var ep = new eventproxy();
+    ep.fail();
+
+    redisClient.del(token, ep.done(function (err, reply) {
+        if (err) {
+            console.log(err);
+            return false;
+        }
+		return true;
+    }));
+}
+
+exports.del_jwtToken = del_jwtToken;

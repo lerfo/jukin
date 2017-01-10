@@ -15,5 +15,8 @@ client.on('error', function (err) {
     process.exit(1);
   }
 })
+client.on('connect', function () {
+    console.log('Redis is ready');
+});
 
 exports = module.exports = client;
